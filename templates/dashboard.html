@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="flex justify-between items-center mb-4">
+  <h1 class="text-2xl font-semibold">Session #{{ data.id }} — Typing Mood Report</h1>
+  <button id="darkModeToggle"
+          class="px-3 py-1 rounded-xl border text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 transition">
+    🌙 Dark Mode
+  </button>
+</div>
+
+<div class="grid md:grid-cols-3 gap-6">
+  <div class="md:col-span-2 space-y-6">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-2">Summary</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div><div class="text-slate-500 dark:text-slate-400">WPM</div><div class="text-xl font-semibold">{{ '%.1f'|format(data.wpm) }}</div></div>
+        <div><div class="text-slate-500 dark:text-slate-400">Avg IKI (ms)</div><div class="text-xl font-semibold">{{ '%.0f'|format(data.avg_iki_ms) }}</div></div>
+        <div><div class="text-slate-500 dark:text-slate-400">Long Pauses</div><div class="text-xl font-semibold">{{ data.pauses_count }}</div></div>
+        <div><div class="text-slate-500 dark:text-slate-400">Backspaces</div><div class="text-xl font-semibold">{{ data.backspace_count }}</div></div>
+        <div><div class="text-slate-500 dark:text-slate-400">Bursts</div><div class="text-xl font-semibold">{{ data.bursts_count }}</div></div>
+        <div><div class="text-slate-500 dark:text-slate-400">Text Length</div><div class="text-xl font-semibold">{{ data.text_length }}</div></div>
+      </div>
+      <div class="mt-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900 border border-indigo-100 dark:border-indigo-700">
+        <div class="text-slate-600 dark:text-slate-300 text-sm">Mood</div>
+        <div class="text-xl font-bold text-indigo-700 dark:text-indigo-300">{{ data.mood }}</div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-4">Keystroke Timeline</h2>
+      <canvas id="timelineChart"></canvas>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-4">Intervals (ms) Distribution</h2>
+      <canvas id="histChart"></canvas>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-2">Suggestions</h2>
+      <ul class="list-disc pl-5 text-sm space-y-2">
+        {% for s in sugg.suggestions %}
+        <li>{{ s }}</li>
+        {% endfor %}
+      </ul>
+      <div class="mt-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900 border border-emerald-100 dark:border-emerald-700">
+        <div class="text-sm text-emerald-700 dark:text-emerald-300"><strong>Daily challenge:</strong> {{ sugg.challenge }}</div>
+      </div>
+      <a href="/history" class="inline-block mt-4 text-indigo-600 dark:text-indigo-400 hover:underline text-sm">View all sessions →</a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 text-sm">
+      <h2 class="font-semibold mb-2">Meta</h2>
+      <div>Created: {{ data.created_at }}</div>
+      <div>Total time: {{ data.total_time_ms }} ms</div>
+    </div>
+
+    <!-- Export CSV Section -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-2">Export</h2>
+      <a href="{{ url_for('export_csv') }}" 
+         class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-xl shadow hover:bg-emerald-700 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+        </svg>
+        Export CSV
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const events = {{ events|tojson }};
+
+  // Dark Mode toggle with persistence
+  const toggleBtn = document.getElementById("darkModeToggle");
+  const html = document.documentElement;
+
+  if (localStorage.getItem("darkMode") === "enabled") {
+    html.classList.add("dark");
+    toggleBtn.textContent = "☀️ Light Mode";
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    html.classList.toggle("dark");
+    if (html.classList.contains("dark")) {
+      localStorage.setItem("darkMode", "enabled");
+      toggleBtn.textContent = "☀️ Light Mode";
+    } else {
+      localStorage.setItem("darkMode", "disabled");
+      toggleBtn.textContent = "🌙 Dark Mode";
+    }
+  });
+
+  // Set up Chart.js defaults for dark mode
+  const isDark = document.documentElement.classList.contains('dark');
+  const chartTextColor = isDark ? '#e2e8f0' : '#1e293b';
+  const chartGridColor = isDark ? 'rgba(226,232,240,0.1)' : 'rgba(30,41,59,0.1)';
+  
+  Chart.defaults.color = chartTextColor;
+  Chart.defaults.scale.grid.color = chartGridColor;
+  Chart.defaults.scale.ticks.color = chartTextColor;
+
+  // Timeline chart
+  const t0 = events.length ? events[0].t : 0;
+  const timelinePoints = events.map((e, i) => ({
+    x: (e.t - t0) / 1000,
+    y: i + 1
+  }));
+
+  const ctx1 = document.getElementById('timelineChart').getContext('2d');
+  new Chart(ctx1, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Keystrokes over Time',
+        data: timelinePoints,
+        borderColor: isDark ? '#818cf8' : '#4f46e5',
+        backgroundColor: isDark ? '#4f46e5' : '#a5b4fc',
+        pointRadius: 2,
+        tension: 0.2,
+        borderWidth: 1.5
+      }]
+    },
+    options: {
+      parsing: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Time (s)' } },
+        y: { title: { display: true, text: 'Keystroke Index' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Histogram of inter-key intervals
+  const intervals = [];
+  for (let i=1; i<events.length; i++) intervals.push(events[i].t - events[i-1].t);
+  const binsize = 50;
+  const maxVal = Math.max(1000, ...intervals);
+  const nbins = Math.ceil(maxVal / binsize);
+  const bins = Array.from({length: nbins}, (_,i)=>({x:i*binsize, y:0}));
+  intervals.forEach(v => {
+    const b = Math.min(nbins-1, Math.floor(v/binsize));
+    bins[b].y += 1;
+  });
+
+  const ctx2 = document.getElementById('histChart').getContext('2d');
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: bins.map(b => b.x),
+      datasets: [{ 
+        label: 'Count', 
+        data: bins.map(b => b.y),
+        backgroundColor: isDark ? '#3b82f6' : '#60a5fa'
+      }]
+    },
+    options: {
+      scales: {
+        x: { title: { display: true, text: 'Interval (ms, bin start)' } },
+        y: { title: { display: true, text: 'Frequency' } }
+      }
+    }
+  });
+</script>
+{% endblock %}

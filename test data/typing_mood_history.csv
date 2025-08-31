@@ -1,0 +1,9 @@
+id,created_at,text_length,total_time_ms,avg_iki_ms,pauses_count,avg_pause_ms,backspace_count,bursts_count,wpm,mood
+1,2025-08-31T07:42:53.965789,140,35732,217.0,2,1138.0,13,0,48.7,"slightly distracted, thinking mode"
+2,2025-08-31T07:44:27.509710,191,49963,260.0,3,1694.0,1,0,55.2,"flow state, thinking mode"
+3,2025-08-31T07:50:15.902864,264,108653,381.0,22,1742.0,11,0,22.6,"cautious, thinking mode"
+4,2025-08-31T07:56:27.724769,350,82141,228.0,8,1004.0,6,0,45.3,"flow state, thinking mode"
+5,2025-08-31T08:01:17.313124,53,11237,201.0,0,0.0,2,0,53.4,flow state
+6,2025-08-31T08:15:46.592412,225,60103,246.0,5,1816.0,10,0,42.9,thinking mode
+7,2025-08-31T08:19:53.925086,114,64956,520.0,26,1526.0,6,0,21.2,"cautious, thinking mode"
+8,2025-08-31T17:52:32.131934,615,200833,314.0,41,1336.0,13,0,30.8,thinking mode

@@ -1,0 +1,4 @@
+id,created_at,text_length,total_time_ms,avg_iki_ms,pauses_count,avg_pause_ms,backspace_count,bursts_count,wpm,mood
+1,2025-08-31T07:42:53.965789,140,35732,217.0,2,1138.0,13,0,48.7,"slightly distracted, thinking mode"
+2,2025-08-31T07:44:27.509710,191,49963,260.0,3,1694.0,1,0,55.2,"flow state, thinking mode"
+3,2025-08-31T07:50:15.902864,264,108653,381.0,22,1742.0,11,0,22.6,"cautious, thinking mode"
